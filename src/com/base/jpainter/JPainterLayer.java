@@ -5,6 +5,8 @@ import java.awt.Composite;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 
+import com.base.jpainter.utils.GraphicsUtils;
+
 public class JPainterLayer {
 	private BufferedImage image;
 	private Graphics2D graphics;
@@ -17,7 +19,7 @@ public class JPainterLayer {
 	public JPainterLayer(int width, int height) {
 		image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
 		graphics = image.createGraphics();
-		JPainterDrawPad.applyQualitySettings(graphics);
+		GraphicsUtils.applyQualitySettings(graphics);
 	}
 
 	public BufferedImage getImage() {
@@ -54,13 +56,8 @@ public class JPainterLayer {
 	
 	public void drawLayer(Graphics2D g) {
 		Composite originalComposite = g.getComposite();
-		g.setComposite(makeComposite(opacity));
+		g.setComposite(GraphicsUtils.makeComposite(opacity));
 		g.drawImage(image, 0, 0, null);
 		g.setComposite(originalComposite);
-	}
-	
-	private AlphaComposite makeComposite(float alpha) {
-		int type = AlphaComposite.SRC_OVER;
-		return AlphaComposite.getInstance(type, alpha);
 	}
 }

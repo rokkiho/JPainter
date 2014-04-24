@@ -3,11 +3,12 @@ package com.base.jpainter;
 import java.awt.AlphaComposite;
 import java.awt.BasicStroke;
 import java.awt.Color;
+import java.awt.Composite;
+import java.awt.Cursor;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Insets;
 import java.awt.Rectangle;
-import java.awt.RenderingHints;
 import java.awt.Transparency;
 import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
@@ -26,6 +27,7 @@ import jpen.event.PenAdapter;
 import jpen.owner.multiAwt.AwtPenToolkit;
 
 import com.base.jpainter.utils.GaussianFilter;
+import com.base.jpainter.utils.GraphicsUtils;
 
 public class JPainterDrawPad extends JPanel {
 	private static final long serialVersionUID = 826649619254544075L;
@@ -48,6 +50,7 @@ public class JPainterDrawPad extends JPanel {
 	// brush dynamics //
 	private float brushSize;
 	private float flow;
+	private float opacity;
 	private BasicStroke stroke;
 	
 	public JPainterDrawPad(int width, int height) {
@@ -63,6 +66,7 @@ public class JPainterDrawPad extends JPanel {
 		setDoubleBuffered(false);
 		setOpaque(false);
 		setBackground(Color.white);
+		setCursor(Cursor.getPredefinedCursor(Cursor.CROSSHAIR_CURSOR));
 		
 		AwtPenToolkit.addPenListener(this, new PenAdapter() {
 			@Override
@@ -75,6 +79,7 @@ public class JPainterDrawPad extends JPanel {
 				float pressure = ev.pen.getLevelValue(PLevel.Type.PRESSURE);
 				brushSize = pressure * 10;
 				flow = 255 - pressure * 255;
+				opacity = pressure;
 				
 				loc.x = ev.pen.getLevelValue(PLevel.Type.X);
 				loc.y = ev.pen.getLevelValue(PLevel.Type.Y);
@@ -88,8 +93,11 @@ public class JPainterDrawPad extends JPanel {
 						g2d.setColor(new Color((int)flow, (int)flow, (int)flow, 255));
 						stroke = new BasicStroke(brushSize, BasicStroke.CAP_ROUND, BasicStroke.JOIN_MITER);
 					}
+					Composite orginalComposite = g2d.getComposite();
+					g2d.setComposite(GraphicsUtils.makeComposite(opacity));
 					g2d.setStroke(stroke);
 					g2d.draw(new Line2D.Float(prevLoc, loc));
+					g2d.setComposite(orginalComposite);
 				}
 				
 				prevLoc.setLocation(loc);
@@ -115,12 +123,6 @@ public class JPainterDrawPad extends JPanel {
 
 	public void setHeight(int height) {
 		this.height = height;
-	}
-	
-	public static void applyQualitySettings(Graphics2D g2d) {
-		g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-		g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-		g2d.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
 	}
 	
 	@Override
@@ -163,7 +165,7 @@ public class JPainterDrawPad extends JPanel {
 		}
 		
 		Graphics2D g2d = (Graphics2D) g;
-		applyQualitySettings(g2d);
+		GraphicsUtils.applyQualitySettings(g2d);
 		Insets insets = getInsets();
 		Rectangle bounds = getBounds();
 		bounds.x = insets.left;
@@ -175,12 +177,14 @@ public class JPainterDrawPad extends JPanel {
 		shape = new Rectangle2D.Float(bounds.x, bounds.y, bounds.width, bounds.height);
 		BufferedImage img = createCompatibleImage(bounds.width, bounds.height);
 		Graphics2D tg2d = img.createGraphics();
-		applyQualitySettings(tg2d);
+		GraphicsUtils.applyQualitySettings(tg2d);
 		tg2d.setColor(Color.BLACK);
 		tg2d.translate(-bounds.x, -bounds.y);
 		tg2d.fill(shape);
 		tg2d.dispose();
 		shadow = generateShadow(img, shadowSize, Color.BLACK, 0.5f);
+		
+		repaint();
 	}
 	
 	private BufferedImage createCompatibleImage(int width, int height) {
@@ -199,7 +203,7 @@ public class JPainterDrawPad extends JPanel {
 		
 		BufferedImage imageMask = createCompatibleImage(imageWidth, imageHeight);
 		Graphics2D g2d = imageMask.createGraphics();
-		applyQualitySettings(g2d);
+		GraphicsUtils.applyQualitySettings(g2d);
 		
 		g2d.drawImage(image, 0, 0, null);
 		g2d.dispose();
@@ -217,7 +221,7 @@ public class JPainterDrawPad extends JPanel {
 		
 		BufferedImage imageBlur = createCompatibleImage(imageWidth, imageHeight);
 		Graphics2D g2d = imageBlur.createGraphics();
-		applyQualitySettings(g2d);
+		GraphicsUtils.applyQualitySettings(g2d);
 		
 		g2d.drawImage(image, 0, 0, null);
 		g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_IN, alpha));
