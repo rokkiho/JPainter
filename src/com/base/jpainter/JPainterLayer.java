@@ -56,7 +56,7 @@ public class JPainterLayer {
 	
 	public void drawLayer(Graphics2D g) {
 		Composite originalComposite = g.getComposite();
-		g.setComposite(GraphicsUtils.makeComposite(opacity));
+		g.setComposite(GraphicsUtils.makeComposite(AlphaComposite.SRC_OVER, opacity));
 		g.drawImage(image, 0, 0, null);
 		g.setComposite(originalComposite);
 	}

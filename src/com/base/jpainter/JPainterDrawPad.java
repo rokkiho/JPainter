@@ -47,17 +47,17 @@ public class JPainterDrawPad extends JPanel {
 	private Point2D.Float prevLoc = new Point2D.Float();
 	private Point2D.Float loc = new Point2D.Float();
 	
-	// brush dynamics //
-	private float brushSize;
-	private float flow;
-	private float opacity;
-	private BasicStroke stroke;
+	private JPainterBrush brush;
+	
+	private Color selectedColor = new Color(0, 0, 0, 255);
 	
 	public JPainterDrawPad(int width, int height) {
 		setBounds(0, 0, width, height);
 		
 		this.width = width + insets.right;
 		this.height = height + insets.bottom;
+		
+		brush = new JPainterBrush();
 		
 		layers = new ArrayList<JPainterLayer>();
 		addLayer(new JPainterLayer(width, height));
@@ -77,27 +77,31 @@ public class JPainterDrawPad extends JPanel {
 				Graphics2D g2d = activeLayer.getGraphics();
 				
 				float pressure = ev.pen.getLevelValue(PLevel.Type.PRESSURE);
-				brushSize = pressure * 10;
-				flow = 255 - pressure * 255;
-				opacity = pressure;
+				brush.setBrushSize(pressure * 10);
+				brush.setFlow(pressure);
 				
 				loc.x = ev.pen.getLevelValue(PLevel.Type.X);
 				loc.y = ev.pen.getLevelValue(PLevel.Type.Y);
 				
-				if(brushSize > 0) {
+				if(brush.getBrushSize() > 0) {
 					if(ev.pen.getKind() == PKind.valueOf(PKind.Type.ERASER)) {
-						g2d.setColor(Color.white);
-						stroke = new BasicStroke(brushSize * 2);
+						g2d.setColor(selectedColor);
+						brush.setStroke(new BasicStroke(brush.getBrushSize() * 2));
+						g2d.setStroke(brush.getStroke());
+						Composite originalComposite = g2d.getComposite();
+						g2d.setComposite(GraphicsUtils.makeComposite(AlphaComposite.CLEAR, 0));
+						g2d.draw(new Line2D.Float(prevLoc, loc));
+						g2d.setComposite(originalComposite);
 					}
 					else {
-						g2d.setColor(new Color((int)flow, (int)flow, (int)flow, 255));
-						stroke = new BasicStroke(brushSize, BasicStroke.CAP_ROUND, BasicStroke.JOIN_MITER);
+						g2d.setColor(new Color(selectedColor.getRed() + (int)((1f - brush.getFlow()) * (255 - selectedColor.getRed())), 
+											   selectedColor.getGreen() + (int)((1f - brush.getFlow()) * (255 - selectedColor.getGreen())), 
+											   selectedColor.getBlue() + (int)((1f - brush.getFlow()) * (255 - selectedColor.getBlue())), 
+											   255));
+						brush.setStroke(new BasicStroke(brush.getBrushSize(), BasicStroke.CAP_ROUND, BasicStroke.JOIN_MITER));
+						g2d.setStroke(brush.getStroke());
+						g2d.draw(new Line2D.Float(prevLoc, loc));
 					}
-					Composite orginalComposite = g2d.getComposite();
-					g2d.setComposite(GraphicsUtils.makeComposite(opacity));
-					g2d.setStroke(stroke);
-					g2d.draw(new Line2D.Float(prevLoc, loc));
-					g2d.setComposite(orginalComposite);
 				}
 				
 				prevLoc.setLocation(loc);
@@ -224,7 +228,7 @@ public class JPainterDrawPad extends JPanel {
 		GraphicsUtils.applyQualitySettings(g2d);
 		
 		g2d.drawImage(image, 0, 0, null);
-		g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_IN, alpha));
+		g2d.setComposite(GraphicsUtils.makeComposite(AlphaComposite.SRC_IN, alpha));
 		g2d.setColor(color);
 		
 		g2d.fillRect(0, 0, imageWidth, imageHeight);

@@ -11,8 +11,8 @@ public class GraphicsUtils {
 		g2d.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
 	}
 	
-	public static AlphaComposite makeComposite(float alpha) {
-		int type = AlphaComposite.SRC_OVER;
+	public static AlphaComposite makeComposite(int type, float alpha) {
+//		int type = AlphaComposite.SRC_OVER;
 		return AlphaComposite.getInstance(type, alpha);
 	}
 }
